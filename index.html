@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APEX — Ultimate Story Generator (All Cards)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+/* ════════════════════════════════════════════
+   DESIGN TOKENS 
+════════════════════════════════════════════ */
+:root { --gold: #c9a84c; --gold-l: #e8c97a; --transition: 0.25s cubic-bezier(.4,0,.2,1); }
+[data-theme="dark"] { --bg: #0a0a0a; --surface: #141414; --surface2: #1c1c1c; --border: rgba(201,168,76,0.18); --border2: rgba(255,255,255,0.06); --text: #f0ebe0; --text2: #9a9080; --shadow: 0 24px 60px rgba(0,0,0,0.6); }
+[data-theme="light"] { --bg: #f2ede3; --surface: #faf7f0; --surface2: #ede8dc; --border: rgba(160,120,48,0.22); --border2: rgba(0,0,0,0.08); --text: #1a1510; --text2: #7a6e5e; --shadow: 0 24px 60px rgba(100,80,40,0.18); }
+
+/* ════════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'IBM Plex Mono', monospace; background: var(--bg); color: var(--text); min-height: 100vh; transition: background var(--transition), color var(--transition); overflow-x: hidden; }
+
+/* ════════════════════════════════════════════
+   HEADER & SIDEBAR
+════════════════════════════════════════════ */
+.app-header { position: sticky; top: 0; z-index: 200; background: var(--bg); border-bottom: 1px solid var(--border); padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.3em; color: var(--gold); line-height: 1; }
+.logo-sub { font-size: 0.52rem; letter-spacing: 0.2em; color: var(--text2); display: block; margin-top: -2px; font-family: 'IBM Plex Mono', monospace; }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
+
+.theme-toggle, .btn-primary, .btn-secondary { font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.15em; cursor: pointer; text-transform: uppercase; transition: all var(--transition); display: flex; align-items: center; gap: 6px; }
+.theme-toggle { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); font-size: 0.58rem; padding: 6px 14px; }
+.btn-primary { background: var(--gold); border: none; color: #0a0a0a; font-size: 0.6rem; padding: 8px 18px; font-weight: bold; }
+.btn-primary:hover { background: var(--gold-l); transform: translateY(-1px); }
+.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text2); font-size: 0.58rem; padding: 7px 16px; }
+
+.app-body { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 60px); overflow: hidden; }
+.sidebar { border-right: 1px solid var(--border); overflow-y: auto; background: var(--surface); }
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+.sidebar-section { border-bottom: 1px solid var(--border2); padding: 1.25rem 1.5rem; }
+.sidebar-title { font-size: 0.55rem; letter-spacing: 0.28em; color: var(--gold); text-transform: uppercase; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.sidebar-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+.template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tpl-btn { background: var(--surface2); border: 1px solid var(--border2); padding: 10px 8px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; color: var(--text2); }
+.tpl-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,0.06); }
+
+.field-group { margin-bottom: 1rem; }
+label { display: block; font-size: 0.52rem; letter-spacing: 0.2em; color: var(--text2); text-transform: uppercase; margin-bottom: 5px; }
+input[type="text"], textarea, select, input[type="file"] { width: 100%; background: var(--surface2); border: 1px solid var(--border2); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; padding: 9px 12px; outline: none; resize: vertical; }
+input[type="file"]::-webkit-file-upload-button { background: var(--gold); border: none; color: #0a0a0a; padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 0.55rem; cursor: pointer; margin-right: 10px; }
+
+.color-picker-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 0.5rem; }
+.color-swatch { height: 28px; border: 2px solid transparent; cursor: pointer; position: relative; }
+.color-swatch.active::after { content: '✓'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; }
+.color-swatch.active { border-color: var(--gold); }
+
+.slide-nav { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.slide-nav-btn { width: 30px; height: 30px; background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.slide-counter { font-size: 0.6rem; color: var(--text2); letter-spacing: 0.1em; }
+
+.btn-download { background: var(--gold); border: none; color: #0a0a0a; font-family: 'IBM Plex Mono', monospace; font-size: 0.58rem; letter-spacing: 0.15em; padding: 10px 8px; cursor: pointer; text-transform: uppercase; font-weight: bold; }
+.btn-download.all { grid-column: span 2; background: var(--surface2); border: 1px solid var(--gold); color: var(--gold); }
+
+/* ════════════════════════════════════════════
+   PREVIEW AREA & STORY STYLING
+════════════════════════════════════════════ */
+.preview-area { display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.preview-toolbar { height: 48px; border-bottom: 1px solid var(--border2); display: flex; align-items: center; padding: 0 1.5rem; gap: 1rem; flex-shrink: 0; }
+.preview-label { font-size: 0.55rem; letter-spacing: 0.2em; color: var(--text2); text-transform: uppercase; }
+.preview-canvas-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; overflow: auto; position: relative; }
+
+/* STORY DIMENSIONS: 1080x1920 (9:16) -> Previewed at 360x640 */
+.ig-story { width: 360px; height: 640px; flex-shrink: 0; position: relative; overflow: hidden; box-shadow: var(--shadow); transition: transform 0.3s; display: flex; flex-direction: column; }
+.ig-story[data-template="dark-gold"] { background: #0a0a0a; color: #f0ebe0; }
+.ig-story[data-template="light-warm"] { background: #faf5ec; color: #1a1510; }
+.ig-story[data-template="obsidian"] { background: #0d0d14; color: #e8e4f0; }
+.ig-story[data-template="ivory"] { background: #f5f0e4; color: #1c1814; }
+.ig-story[data-template="slate"] { background: #1a1f2e; color: #dce4f0; }
+
+.accent { color: var(--gold); }
+.brand-watermark { position: absolute; bottom: 24px; left: 0; right: 0; text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 14px; letter-spacing: 0.35em; opacity: 0.3; z-index: 10; }
+.story-layout { width: 100%; height: 100%; display: flex; flex-direction: column; padding: 80px 32px 110px 32px; position: relative; z-index: 2; }
+.img-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.1em; color: var(--gold); opacity: 0.4; border: 1px dashed var(--gold); background: rgba(120,120,120,0.05); }
+
+/* GLOW ANIMATION */
+@keyframes pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(201,168,76, 0.6); }
+  70% { box-shadow: 0 0 15px 10px rgba(201,168,76, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(201,168,76, 0); }
+}
+
+/* LAYOUT: HOOK */
+.story-hook { justify-content: center; }
+.story-hook .badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; border: 1px solid currentColor; padding: 4px 10px; opacity: 0.6; align-self: flex-start; margin-bottom: 24px; }
+.story-hook .hook-text { font-family: 'DM Serif Display', serif; line-height: 1.15; letter-spacing: -0.01em; margin-bottom: 20px; }
+.story-hook .rule { width: 40px; height: 3px; background: var(--gold); margin-bottom: 20px; }
+.story-hook .sub-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.6; opacity: 0.7; }
+
+/* LAYOUT: PROMO / SALE */
+.story-promo { justify-content: center; align-items: center; text-align: center; }
+.story-promo .promo-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+.story-promo .promo-title { font-family: 'Bebas Neue', sans-serif; line-height: 0.9; letter-spacing: 0.05em; margin-bottom: 24px; text-transform: uppercase; }
+.story-promo .promo-price-box { border: 2px solid var(--gold); padding: 20px 30px; margin-bottom: 24px; background: rgba(120,120,120,0.05); }
+.story-promo .promo-price { font-family: 'DM Serif Display', serif; font-size: 42px; color: var(--gold); line-height: 1; margin-bottom: 4px; }
+.story-promo .promo-detail { font-family: 'IBM Plex Mono', monospace; font-size: 10px; opacity: 0.7; letter-spacing: 0.1em; }
+.story-promo .promo-cta { font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: var(--gold); color: #0a0a0a; padding: 12px 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.15em; margin-top: auto; animation: pulse-glow 2s infinite; }
+
+/* LAYOUT: FULL MEDIA */
+.story-media-bg { position: absolute; inset: 0; z-index: 0; }
+.story-media-bg img { width: 100%; height: 100%; object-fit: cover; }
+.story-media-overlay { position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.95) 100%); }
+.story-media { justify-content: flex-end; padding-bottom: 120px; color: #fff; }
+.story-media .media-badge { background: var(--gold); color: #000; font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.2em; padding: 4px 10px; text-transform: uppercase; align-self: flex-start; margin-bottom: 16px; font-weight: bold; }
+.story-media .media-title { font-family: 'DM Serif Display', serif; line-height: 1.2; margin-bottom: 12px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+.story-media .media-desc { font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.6; opacity: 0.9; text-shadow: 0 1px 5px rgba(0,0,0,0.8); }
+
+/* LAYOUT: PRODUCT FOCUS */
+.story-product-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+.story-product-img { height: 55%; width: 100%; position: relative; }
+.story-product-img img { width: 100%; height: 100%; object-fit: cover; }
+.story-product-card { height: 45%; background: var(--surface); border-top: 2px solid var(--gold); padding: 30px 32px 80px 32px; display: flex; flex-direction: column; }
+.story-product-card .p-title { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.1; margin-bottom: 6px; }
+.story-product-card .p-price { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: var(--gold); letter-spacing: 0.05em; margin-bottom: 16px; }
+.story-product-card .p-specs { font-family: 'IBM Plex Mono', monospace; font-size: 10px; line-height: 1.8; opacity: 0.8; flex: 1; }
+.story-product-card .p-cta { align-self: center; background: var(--text); color: var(--bg); font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: bold; padding: 10px 24px; text-transform: uppercase; letter-spacing: 0.1em; width: 100%; text-align: center; margin-top: 10px; }
+
+/* LAYOUT: CUSTOMER REVIEW */
+.story-review { justify-content: center; align-items: center; text-align: center; }
+.story-review .stars { color: var(--gold); font-size: 24px; letter-spacing: 4px; margin-bottom: 24px; }
+.story-review .r-quote { font-family: 'DM Serif Display', serif; font-style: italic; font-size: 26px; line-height: 1.4; margin-bottom: 32px; opacity: 0.95; }
+.story-review .r-avatar { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--gold); margin-bottom: 16px; }
+.story-review .r-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.story-review .r-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.1em; }
+.story-review .r-role { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); opacity: 0.8; margin-top: 4px; }
+
+/* LAYOUT: SPLIT COMPARE */
+.story-split-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+.split-half { flex: 1; position: relative; overflow: hidden; }
+.split-half img { width: 100%; height: 100%; object-fit: cover; opacity: 0.8; }
+.split-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); display: flex; align-items: flex-end; padding: 24px; }
+.split-text { color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 0.1em; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+.split-center { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg); border: 2px solid var(--gold); color: var(--gold); font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: bold; letter-spacing: 0.2em; padding: 10px 20px; z-index: 10; text-transform: uppercase; white-space: nowrap;}
+
+/* LAYOUT: EXPERT PROFILE */
+.story-expert { justify-content: center; align-items: center; text-align: center; }
+.story-expert .e-img { width: 120px; height: 120px; border-radius: 50%; margin-bottom: 24px; overflow: hidden; border: 3px solid var(--surface2); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.story-expert .e-img img { width: 100%; height: 100%; object-fit: cover; }
+.story-expert .e-name { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.1em; color: var(--gold); }
+.story-expert .e-title { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.6; margin-bottom: 24px; }
+.story-expert .e-quote { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1.35; opacity: 0.9; }
+
+/* LAYOUT: LIST */
+.story-list { justify-content: center; }
+.story-list .list-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+.story-list .list-header { font-family: 'DM Serif Display', serif; line-height: 1.2; margin-bottom: 30px; }
+.story-list .list-items { display: flex; flex-direction: column; gap: 20px; }
+.story-list .list-item { display: flex; gap: 16px; align-items: flex-start; border-bottom: 1px dashed rgba(150,150,150,0.2); padding-bottom: 16px; }
+.story-list .list-item:last-child { border-bottom: none; }
+.story-list .list-num { font-family: 'Bebas Neue', sans-serif; font-size: 24px; color: var(--gold); opacity: 0.8; line-height: 1; margin-top: 2px;}
+.story-list .list-text { font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.5; opacity: 0.85; }
+
+/* LAYOUT: TEXT COMPARE */
+.story-compare { justify-content: center; }
+.story-compare .compare-header { margin-bottom: 32px; }
+.story-compare .compare-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); margin-bottom: 6px;}
+.story-compare .compare-title { font-family: 'DM Serif Display', serif; line-height: 1.2; margin-bottom: 4px; }
+.story-compare .compare-cols { display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: center;}
+.story-compare .col-avg, .story-compare .col-elite { padding: 20px; display: flex; flex-direction: column; gap: 10px; border-radius: 4px; }
+.story-compare .col-avg { background: rgba(120, 120, 120, 0.03); }
+.story-compare .col-elite { background: rgba(120, 120, 120, 0.08); border-left: 3px solid var(--gold); }
+.story-compare .col-label { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.55; }
+.story-compare .col-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.75; opacity: 0.8; }
+.story-compare .bottom-accent { margin-top: 30px; font-family: 'DM Serif Display', serif; font-style: italic; font-size: 15px; opacity: 0.55; border-top: 1px solid currentColor; padding-top: 20px; line-height: 1.5; }
+
+/* LAYOUT: FRAMEWORK */
+.story-framework { justify-content: center; }
+.story-framework .fw-title { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+.story-framework .fw-heading { font-family: 'DM Serif Display', serif; line-height: 1.2; margin-bottom: 32px; }
+.story-framework .fw-steps { display: flex; flex-direction: column; gap: 20px; flex: 1; }
+.story-framework .fw-step { display: flex; gap: 16px; align-items: flex-start; }
+.story-framework .step-num { font-family: 'Bebas Neue', sans-serif; font-size: 32px; line-height: 1; color: var(--gold); opacity: 0.8; min-width: 32px; }
+.story-framework .step-text { font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.7; opacity: 0.75; padding-top: 4px; }
+.story-framework .fw-closing { margin-top: 30px; border-top: 1px solid currentColor; padding-top: 20px; font-family: 'DM Serif Display', serif; font-style: italic; font-size: 14px; opacity: 0.5; }
+
+/* LAYOUT: QUOTE */
+.story-quote { justify-content: center; text-align: center; }
+.story-quote .quote-mark { font-family: 'DM Serif Display', serif; font-size: 80px; color: var(--gold); line-height: 1; margin-bottom: 20px; }
+.story-quote .quote-text { font-family: 'DM Serif Display', serif; line-height: 1.45; margin-bottom: 30px; }
+.story-quote .quote-author { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.2em; color: var(--gold); text-transform: uppercase; opacity: 0.9; }
+
+/* LAYOUT: CLOSING */
+.story-closing { align-items: center; justify-content: center; text-align: center; }
+.story-closing .closing-rule { width: 1px; height: 80px; background: currentColor; opacity: 0.2; margin-bottom: 40px; }
+.story-closing .closing-main { font-family: 'DM Serif Display', serif; line-height: 1.35; letter-spacing: -0.01em; margin-bottom: 40px; }
+.story-closing .closing-rule2 { width: 1px; height: 50px; background: currentColor; opacity: 0.2; margin-bottom: 30px; }
+.story-closing .closing-brand { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.4em; color: var(--gold); opacity: 0.8; }
+.story-closing .closing-handle { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.2em; opacity: 0.45; margin-top: 8px; }
+
+/* LAYOUT: CAPTION */
+.story-caption { justify-content: center; }
+.story-caption .cap-eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.28em; color: var(--gold); text-transform: uppercase; margin-bottom: 24px; }
+.story-caption .cap-text { font-family: 'IBM Plex Mono', monospace; font-size: 14px; line-height: 1.85; opacity: 0.75; }
+.story-caption .cap-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 30px; }
+.story-caption .cap-tag { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--gold); opacity: 0.8; letter-spacing: 0.05em; border: 1px solid currentColor; padding: 6px 10px; border-radius: 2px;}
+
+/* OVERLAYS & THUMBS */
+.post-strip { height: 90px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 1.5rem; overflow-x: auto; background: var(--surface); }
+.strip-thumb { flex-shrink: 0; width: 40px; height: 71px; border: 1.5px solid var(--border2); cursor: pointer; position: relative; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-size: 7px; color: var(--text2); }
+.strip-thumb.active { border-color: var(--gold); border-width: 2px; }
+.loading-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; display: none; }
+.loading-overlay.active { display: flex; }
+.loading-spinner { width: 40px; height: 40px; border: 2px solid rgba(201,168,76,0.2); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--gold); color: #0a0a0a; font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; letter-spacing: 0.15em; padding: 12px 20px; z-index: 9999; transform: translateY(80px); opacity: 0; transition: all 0.3s; font-weight: bold; }
+.toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo">APEX <span class="logo-sub">Story Generator (ALL CARDS)</span></div>
+  <div class="header-actions">
+    <button class="theme-toggle" onclick="toggleAppTheme()">☀ Light Mode</button>
+    <button class="btn-primary" onclick="downloadCurrentSlide()">↓ Export Story</button>
+  </div>
+</header>
+
+<div class="loading-overlay" id="loading"><div class="loading-spinner"></div><div class="loading-text">Rendering Story...</div></div>
+<div class="toast" id="toast"></div>
+
+<div class="app-body">
+  <aside class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Theme Template</div>
+      <div class="template-grid">
+        <button class="tpl-btn active" onclick="setTemplate('dark-gold', this)">Dark Gold</button>
+        <button class="tpl-btn" onclick="setTemplate('light-warm', this)">Light Warm</button>
+        <button class="tpl-btn" onclick="setTemplate('obsidian', this)">Obsidian</button>
+        <button class="tpl-btn" onclick="setTemplate('ivory', this)">Ivory</button>
+        <button class="tpl-btn" onclick="setTemplate('slate', this)">Slate</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Story Manager</div>
+      <div class="slide-nav" style="margin-bottom: 12px;">
+        <button class="slide-nav-btn" onclick="prevSlide()">←</button>
+        <span class="slide-counter" id="slide-counter">Story 1 / 1</span>
+        <button class="slide-nav-btn" onclick="nextSlide()">→</button>
+      </div>
+      
+      <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <select id="new-slide-type" style="flex: 1;">
+          <option value="product">Product Focus (Img)</option>
+          <option value="review">Customer Review (Img)</option>
+          <option value="split">Split Compare (Img)</option>
+          <option value="expert">Expert Profile (Img)</option>
+          <option value="promo">Promo / Sale</option>
+          <option value="media">Full Image BG</option>
+          <option value="hook">Text Hook</option>
+          <option value="list">List Card</option>
+          <option value="compare">Text Compare</option>
+          <option value="framework">Framework</option>
+          <option value="quote">Quote Card</option>
+          <option value="closing">Closing Card</option>
+          <option value="caption">Caption/Text Block</option>
+        </select>
+        <button class="btn-primary" style="padding: 0 12px;" onclick="addSlide()">+ Add</button>
+      </div>
+      <button class="btn-secondary" style="width: 100%; border-color: rgba(184,50,50,0.4); color: #b83232;" onclick="deleteSlide()">Trash Current Story</button>
+    </div>
+
+    <div class="sidebar-section" id="dynamic-editor"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Global Style</div>
+      <div class="field-group">
+        <label>Main Font Size</label>
+        <input type="range" id="rng-hooksize" min="24" max="64" value="42" oninput="updateStyle()">
+      </div>
+      <div class="field-group">
+        <label>Accent Color</label>
+        <div class="color-picker-row">
+          <div class="color-swatch active" style="background:#c9a84c;" data-color="#c9a84c" onclick="setAccent(this)"></div>
+          <div class="color-swatch" style="background:#a07830;" data-color="#a07830" onclick="setAccent(this)"></div>
+          <div class="color-swatch" style="background:#b03030;" data-color="#b03030" onclick="setAccent(this)"></div>
+          <div class="color-swatch" style="background:#50a0dc;" data-color="#50a0dc" onclick="setAccent(this)"></div>
+          <div class="color-swatch" style="background:#a078dc;" data-color="#a078dc" onclick="setAccent(this)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Export (1080x1920)</div>
+      <div class="download-row">
+        <button class="btn-download" onclick="downloadCurrentSlide()">↓ This Story</button>
+        <button class="btn-download all" onclick="downloadAllSlides()">↓ All Stories</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <div class="preview-area">
+    <div class="preview-toolbar"><span class="preview-label">Story Preview · Safe Zones Active</span></div>
+    <div class="preview-canvas-wrap"><div class="ig-story" id="ig-story" data-template="dark-gold"></div></div>
+    <div class="post-strip" id="post-strip"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  DYNAMIC STATE MANAGEMENT
+// ════════════════════════════════════════════
+let currentSlideIndex = 0;
+let currentTemplate = 'dark-gold';
+let currentAccent = '#c9a84c';
+let mainFontSize = 42;
+
+const TEMPLATE_COLORS = { 'dark-gold': '#c9a84c', 'light-warm': '#a07830', 'obsidian': '#a078dc', 'ivory': '#b03030', 'slate': '#50a0dc' };
+
+const defaultCardData = {
+  product: { label: 'Product Focus', img1: '', title: 'Sony Alpha A7 IV', price: '₹2,50,000', specs: '• 33MP Full-Frame Exmor R\n• 4K 60p Video Recording\n• Real-time Eye AF Tracker\n• 10-bit 4:2:2 Color Depth', cta: 'Swipe Up To Buy', brand: 'SHIVAM ELECTRONICS' },
+  review: { label: 'Review', img1: '', rating: '★★★★★', quote: 'Best electronics shop in Surat! Delivery was super fast and the packaging was completely secure.', author: 'Rahul D.', role: 'Verified Buyer', brand: 'SHIVAM ELECTRONICS' },
+  split: { label: 'Split Compare', img1: '', textTop: 'OLED TV', img2: '', textBottom: 'QLED TV', centerTag: 'WHICH IS BETTER?', brand: 'SHIVAM ELECTRONICS' },
+  expert: { label: 'Expert Profile', img1: '', name: 'Store Manager', title: 'Shivam Electronics', quote: 'We personally test every flagship device before we recommend it to our customers.', brand: 'SHIVAM ELECTRONICS' },
+  promo: { label: 'Promo', eyebrow: 'Limited Time Offer', title: 'Summer Tech Blowout', price: 'Up to 40% Off', detail: 'On selected Smart TVs and Audio', cta: 'Tap To Shop', brand: 'SHIVAM ELECTRONICS' },
+  media: { label: 'Full Image', badge: 'New Arrival', title: 'The Ultimate Setup.', text: 'Upgrade your workspace with our latest high-performance displays.', img1: '', brand: 'SHIVAM ELECTRONICS' },
+  hook: { label: 'Hook', category: 'Pro Tip', hook: 'Stop overpaying for standard tech.', accent: 'overpaying', sub: 'We source the best gear so you do not have to compromise on quality or price.', brand: 'SHIVAM ELECTRONICS' },
+  list: { label: 'List', eyebrow: 'Top Picks', title: 'Top Tech Upgrades', items: '4K Smart LED Displays\nHigh-Efficiency Inverter ACs\nNext-Gen Gaming Laptops\nNoise-Cancelling Audio\nSmart Home Hubs', brand: 'SHIVAM ELECTRONICS' },
+  compare: { label: 'Text Compare', category: 'Standard vs Premium', avg: 'Buys unbranded tech. No warranty. Repairs cost extra over time.', elite: 'Invests in trusted brands. Extended warranty coverage. Complete peace of mind.', bottom: 'Value is what you get, not just what you pay.', brand: 'SHIVAM ELECTRONICS' },
+  framework: { label: 'Framework', category: 'How To Choose A TV', steps: 'Measure your room viewing distance.\nDecide between OLED for dark rooms or QLED for bright rooms.\nCheck for HDMI 2.1 if you are a gamer.', closing: 'Visit our store for a live demo.', brand: 'SHIVAM ELECTRONICS' },
+  quote: { label: 'Quote', quote: 'Quality is remembered long after the price is forgotten.', author: 'Aldo Gucci', brand: 'SHIVAM ELECTRONICS' },
+  closing: { label: 'Closing', closing: '"Your trusted tech partner in Surat."', brand: 'SHIVAM ELECTRONICS', handle: '@shivamelectronics' },
+  caption: { label: 'Caption', caption: 'Drop by Shivam Electronics today to check out our latest arrivals. We offer zero-cost EMI on all major credit cards.', tags: '#ShivamElectronics #Surat #TechUpgrade #Gadgets', brand: 'SHIVAM ELECTRONICS' }
+};
+
+let slides = [
+  { type: 'product', ...defaultCardData.product },
+  { type: 'split', ...defaultCardData.split },
+  { type: 'compare', ...defaultCardData.compare },
+  { type: 'framework', ...defaultCardData.framework },
+  { type: 'quote', ...defaultCardData.quote }
+];
+
+function handleImageUpload(input, key) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) { updateSlideData(key, e.target.result); };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function renderSidebar() {
+  const editor = document.getElementById('dynamic-editor');
+  const slide = slides[currentSlideIndex];
+  let html = `<div class="sidebar-title">Editing: ${slide.label}</div>`;
+
+  const makeInput = (key, label, type = 'text') => {
+    if (type === 'textarea') return `<div class="field-group"><label>${label}</label><textarea oninput="updateSlideData('${key}', this.value)">${slide[key]}</textarea></div>`;
+    return `<div class="field-group"><label>${label}</label><input type="text" value="${slide[key]}" oninput="updateSlideData('${key}', this.value)"></div>`;
+  };
+  const makeImg = (key, label) => `<div class="field-group"><label>${label}</label><input type="file" accept="image/*" onchange="handleImageUpload(this, '${key}')"></div>`;
+
+  if (slide.type === 'product') {
+    html += makeImg('img1', 'Upload Product Image');
+    html += makeInput('title', 'Product Name');
+    html += makeInput('price', 'Price');
+    html += makeInput('specs', 'Bullet Points / Specs', 'textarea');
+    html += makeInput('cta', 'Button Text');
+  } 
+  else if (slide.type === 'review') {
+    html += makeImg('img1', 'Upload Customer Avatar');
+    html += makeInput('rating', 'Star Rating (Text)');
+    html += makeInput('quote', 'The Review', 'textarea');
+    html += makeInput('author', 'Customer Name');
+    html += makeInput('role', 'Subtitle (e.g. Verified Buyer)');
+  }
+  else if (slide.type === 'split') {
+    html += makeImg('img1', 'Upload Top Image');
+    html += makeInput('textTop', 'Top Label');
+    html += makeImg('img2', 'Upload Bottom Image');
+    html += makeInput('textBottom', 'Bottom Label');
+    html += makeInput('centerTag', 'Center Tagline');
+  }
+  else if (slide.type === 'expert') {
+    html += makeImg('img1', 'Upload Person Image');
+    html += makeInput('quote', 'The Message/Quote', 'textarea');
+    html += makeInput('name', 'Name');
+    html += makeInput('title', 'Subtitle / Role');
+  }
+  else if (slide.type === 'promo') {
+    html += makeInput('eyebrow', 'Eyebrow Text');
+    html += makeInput('title', 'Main Big Title', 'textarea');
+    html += makeInput('price', 'Price / Discount');
+    html += makeInput('detail', 'Sub-detail Text');
+    html += makeInput('cta', 'Call to Action Button');
+  } 
+  else if (slide.type === 'media') {
+    html += makeImg('img1', 'Upload Background Image');
+    html += makeInput('badge', 'Top Badge Tag');
+    html += makeInput('title', 'Headline', 'textarea');
+    html += makeInput('text', 'Description text', 'textarea');
+  }
+  else if (slide.type === 'hook') {
+    html += makeInput('category', 'Top Tag');
+    html += makeInput('hook', 'Main Hook Text', 'textarea');
+    html += makeInput('accent', 'Highlight Word(s)');
+    html += makeInput('sub', 'Sub Text', 'textarea');
+  }
+  else if (slide.type === 'list') {
+    html += makeInput('eyebrow', 'Small Eyebrow Text');
+    html += makeInput('title', 'List Title');
+    html += makeInput('items', 'List Items (One per line)', 'textarea');
+  }
+  else if (slide.type === 'compare') {
+    html += makeInput('category', 'Comparison Title');
+    html += makeInput('avg', 'Top Box (Average)', 'textarea');
+    html += makeInput('elite', 'Bottom Box (Elite)', 'textarea');
+    html += makeInput('bottom', 'Bottom Accent Quote', 'textarea');
+  } 
+  else if (slide.type === 'framework') {
+    html += makeInput('category', 'Framework Heading');
+    html += makeInput('steps', 'Steps (One per line)', 'textarea');
+    html += makeInput('closing', 'Closing Note');
+  } 
+  else if (slide.type === 'quote') {
+    html += makeInput('quote', 'The Quote', 'textarea');
+    html += makeInput('author', 'Author / Source');
+  }
+  else if (slide.type === 'closing') {
+    html += makeInput('closing', 'Main Quote', 'textarea');
+    html += makeInput('handle', 'Social Handle');
+  } 
+  else if (slide.type === 'caption') {
+    html += makeInput('caption', 'Caption/Body Text', 'textarea');
+    html += makeInput('tags', 'Hashtags (Space separated)');
+  }
+
+  // Common Brand input for all
+  html += makeInput('brand', 'Brand Watermark (Bottom)');
+  editor.innerHTML = html;
+}
+
+function updateSlideData(key, value) { slides[currentSlideIndex][key] = value; updatePost(); }
+function addSlide() { const t = document.getElementById('new-slide-type').value; slides.splice(currentSlideIndex + 1, 0, { type: t, ...defaultCardData[t] }); currentSlideIndex++; refreshAll(); }
+function deleteSlide() { if (slides.length <= 1) { showToast("You need at least one story!"); return; } slides.splice(currentSlideIndex, 1); if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1; refreshAll(); }
+function prevSlide() { currentSlideIndex = Math.max(0, currentSlideIndex - 1); refreshAll(); }
+function nextSlide() { currentSlideIndex = Math.min(slides.length - 1, currentSlideIndex + 1); refreshAll(); }
+function goToSlide(idx) { currentSlideIndex = idx; refreshAll(); }
+function refreshAll() { renderSidebar(); updatePost(); }
+
+function updatePost() {
+  const slide = slides[currentSlideIndex];
+  const post = document.getElementById('ig-story');
+  post.innerHTML = renderSlideHTML(slide);
+  post.style.setProperty('--gold', currentAccent);
+  document.getElementById('slide-counter').textContent = `Story ${currentSlideIndex + 1} / ${slides.length}`;
+  updateSlideStrip();
+}
+
+function updateStyle() { mainFontSize = document.getElementById('rng-hooksize').value; updatePost(); }
+function escHtml(s) { return (s || '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function highlightAccent(t, a) { if (!a || !a.trim()) return escHtml(t); const e = escHtml(a); return escHtml(t).replace(e, `<span class="accent">${e}</span>`); }
+function imgHelper(src) { return src ? `<img src="${src}">` : `<div class="img-placeholder">[ UPLOAD IMG ]</div>`; }
+
+function renderSlideHTML(d) {
+  let html = '';
+  
+  if (d.type === 'product') {
+    const specsHtml = (d.specs ? d.specs.split('\n').filter(s=>s.trim()) : []).map(s => `<div>${escHtml(s)}</div>`).join('');
+    html = `<div class="story-product-wrap">
+      <div class="story-product-img">${imgHelper(d.img1)}</div>
+      <div class="story-product-card">
+        <div class="p-title" style="font-size:${mainFontSize - 10}px">${escHtml(d.title)}</div>
+        <div class="p-price">${escHtml(d.price)}</div>
+        <div class="p-specs">${specsHtml}</div>
+        <div class="p-cta" style="background:var(--gold); color:#0a0a0a;">${escHtml(d.cta)}</div>
+      </div>
+    </div>`;
+  }
+  else if (d.type === 'review') {
+    html = `<div class="story-layout story-review">
+      <div class="stars">${escHtml(d.rating)}</div>
+      <div class="r-quote" style="font-size:${mainFontSize - 12}px">"${escHtml(d.quote)}"</div>
+      <div class="r-avatar">${imgHelper(d.img1)}</div>
+      <div class="r-name">${escHtml(d.author)}</div>
+      <div class="r-role">${escHtml(d.role)}</div>
+    </div>`;
+  }
+  else if (d.type === 'split') {
+    html = `<div class="story-split-wrap">
+      <div class="split-half">${imgHelper(d.img1)}<div class="split-overlay"><div class="split-text">${escHtml(d.textTop)}</div></div></div>
+      <div class="split-center">${escHtml(d.centerTag)}</div>
+      <div class="split-half">${imgHelper(d.img2)}<div class="split-overlay"><div class="split-text">${escHtml(d.textBottom)}</div></div></div>
+    </div>`;
+  }
+  else if (d.type === 'expert') {
+    html = `<div class="story-layout story-expert">
+      <div class="e-img">${imgHelper(d.img1)}</div>
+      <div class="e-name">${escHtml(d.name)}</div>
+      <div class="e-title">${escHtml(d.title)}</div>
+      <div class="e-quote" style="font-size:${mainFontSize - 8}px">"${escHtml(d.quote)}"</div>
+    </div>`;
+  }
+  else if (d.type === 'hook') {
+    html = `<div class="story-layout story-hook">
+      <span class="badge">${escHtml(d.category)}</span>
+      <div class="hook-text" style="font-size:${mainFontSize}px">${highlightAccent(d.hook, d.accent)}</div>
+      <div class="rule"></div>
+      <div class="sub-text">${escHtml(d.sub)}</div>
+    </div>`;
+  }
+  else if (d.type === 'promo') {
+    html = `<div class="story-layout story-promo">
+      <div class="promo-eyebrow">${escHtml(d.eyebrow)}</div>
+      <div class="promo-title" style="font-size:${mainFontSize + 12}px">${escHtml(d.title).replace(/\n/g, '<br>')}</div>
+      <div class="promo-price-box"><div class="promo-price">${escHtml(d.price)}</div><div class="promo-detail">${escHtml(d.detail)}</div></div>
+      <div class="promo-cta">${escHtml(d.cta)}</div>
+    </div>`;
+  }
+  else if (d.type === 'media') {
+    html = `<div class="story-media-bg">${imgHelper(d.img1)}</div><div class="story-media-overlay"></div>
+      <div class="story-layout story-media">
+        <div class="media-badge">${escHtml(d.badge)}</div>
+        <div class="media-title" style="font-size:${mainFontSize - 6}px">${escHtml(d.title)}</div>
+        <div class="media-desc">${escHtml(d.text)}</div>
+      </div>`;
+  }
+  else if (d.type === 'list') {
+    const itemsHtml = (d.items ? d.items.split('\n').filter(s=>s.trim()) : []).map((s, i) => `<div class="list-item"><div class="list-num">0${i+1}</div><div class="list-text">${escHtml(s)}</div></div>`).join('');
+    html = `<div class="story-layout story-list">
+      <div class="list-eyebrow">↳ ${escHtml(d.eyebrow)}</div>
+      <div class="list-header" style="font-size:${mainFontSize - 10}px">${escHtml(d.title)}</div>
+      <div class="list-items">${itemsHtml}</div>
+    </div>`;
+  }
+  else if (d.type === 'compare') {
+    html = `<div class="story-layout story-compare">
+      <div class="compare-header"><div class="compare-label">Comparison</div><div class="compare-title" style="font-size:${mainFontSize - 10}px">${escHtml(d.category)}</div></div>
+      <div class="compare-cols">
+        <div class="col-avg"><div class="col-label">Standard</div><div class="col-text">${escHtml(d.avg)}</div></div>
+        <div class="col-elite"><div class="col-label">Premium</div><div class="col-text">${escHtml(d.elite)}</div></div>
+      </div>
+      <div class="bottom-accent">${escHtml(d.bottom)}</div>
+    </div>`;
+  }
+  else if (d.type === 'framework') {
+    const stepsHtml = (d.steps ? d.steps.split('\n').filter(s=>s.trim()) : []).map((s, i) => `<div class="fw-step"><span class="step-num">0${i+1}</span><span class="step-text">${escHtml(s)}</span></div>`).join('');
+    html = `<div class="story-layout story-framework">
+      <div class="fw-title">↳ Process</div>
+      <div class="fw-heading" style="font-size:${mainFontSize - 8}px">${escHtml(d.category)}</div>
+      <div class="fw-steps">${stepsHtml}</div>
+      <div class="fw-closing">${escHtml(d.closing)}</div>
+    </div>`;
+  }
+  else if (d.type === 'quote') {
+    html = `<div class="story-layout story-quote">
+      <div class="quote-mark">"</div>
+      <div class="quote-text" style="font-size:${mainFontSize - 10}px">${escHtml(d.quote)}</div>
+      <div class="quote-author">— ${escHtml(d.author)}</div>
+    </div>`;
+  }
+  else if (d.type === 'closing') {
+    html = `<div class="story-layout story-closing">
+      <div class="closing-rule"></div>
+      <div class="closing-main" style="font-size:${mainFontSize - 8}px">${escHtml(d.closing)}</div>
+      <div class="closing-rule2"></div>
+      <div class="closing-brand">${escHtml(d.brand)}</div>
+      <div class="closing-handle">${escHtml(d.handle)}</div>
+    </div>`;
+  }
+  else if (d.type === 'caption') {
+    const tagsHtml = (d.tags ? d.tags.split(' ').filter(t=>t.trim()) : []).map(t => `<span class="cap-tag">${escHtml(t)}</span>`).join('');
+    html = `<div class="story-layout story-caption">
+      <div class="cap-eyebrow">↳ Information</div>
+      <div class="cap-text">${escHtml(d.caption)}</div>
+      <div class="cap-tags">${tagsHtml}</div>
+    </div>`;
+  }
+
+  // Inject Brand Watermark at the bottom of EVERY slide
+  html += `<div class="brand-watermark">${escHtml(d.brand)}</div>`;
+  return html;
+}
+
+const STRIP_COLORS = { 'dark-gold': '#0a0a0a', 'light-warm': '#faf5ec', 'obsidian': '#0d0d14', 'ivory': '#f5f0e4', 'slate': '#1a1f2e' };
+function updateSlideStrip() {
+  const bg = STRIP_COLORS[currentTemplate] || '#0a0a0a';
+  document.getElementById('post-strip').innerHTML = slides.map((s, i) => 
+    `<div class="strip-thumb ${i === currentSlideIndex ? 'active' : ''}" onclick="goToSlide(${i})"><div style="position:absolute;inset:0;opacity:0.15;background:${bg}"></div><div style="position:relative;z-index:1;">${i+1}</div></div>`
+  ).join('');
+}
+
+function setTemplate(tpl, btn) {
+  currentTemplate = tpl;
+  document.getElementById('ig-story').setAttribute('data-template', tpl);
+  document.querySelectorAll('.tpl-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  currentAccent = TEMPLATE_COLORS[tpl];
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.toggle('active', s.dataset.color === currentAccent));
+  updatePost();
+}
+
+function setAccent(swatch) { currentAccent = swatch.dataset.color; document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active')); swatch.classList.add('active'); updatePost(); }
+function toggleAppTheme() { let appTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; document.documentElement.setAttribute('data-theme', appTheme); }
+function showLoading() { document.getElementById('loading').classList.add('active'); }
+function hideLoading() { document.getElementById('loading').classList.remove('active'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800); }
+
+async function renderToCanvas(slideIdx) {
+  const post = document.getElementById('ig-story');
+  const originalHTML = post.innerHTML;
+  post.innerHTML = renderSlideHTML(slides[slideIdx]);
+  post.style.setProperty('--gold', currentAccent);
+  
+  const cta = post.querySelector('.promo-cta');
+  if(cta) cta.style.animation = 'none';
+
+  await new Promise(r => setTimeout(r, 100));
+  const canvas = await html2canvas(post, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, width: 360, height: 640, logging: false });
+  post.innerHTML = originalHTML;
+  return canvas;
+}
+
+async function downloadCurrentSlide() {
+  showLoading();
+  try {
+    const canvas = await renderToCanvas(currentSlideIndex);
+    const link = document.createElement('a');
+    link.download = `story-${currentSlideIndex + 1}-${slides[currentSlideIndex].type}.png`;
+    link.href = canvas.toDataURL('image/png'); link.click();
+    showToast('↓ Story downloaded! (1080x1920)');
+  } catch(e) { showToast('Error: ' + e.message); }
+  hideLoading();
+}
+
+async function downloadAllSlides() {
+  showLoading();
+  try {
+    for (let i = 0; i < slides.length; i++) {
+      const canvas = await renderToCanvas(i);
+      const link = document.createElement('a');
+      link.download = `story-${i+1}-${slides[i].type}.png`;
+      link.href = canvas.toDataURL('image/png'); link.click();
+      await new Promise(r => setTimeout(r, 300));
+    }
+    showToast(`↓ All ${slides.length} stories downloaded!`);
+  } catch(e) { showToast('Error: ' + e.message); }
+  hideLoading();
+}
+
+refreshAll();
+</script>
+</body>
+</html>
